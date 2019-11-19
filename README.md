@@ -1,4 +1,4 @@
-# Detection of Interstitial Lung Disease Using Radiologists' Notes and Medical Claims Data
+## Detection of Interstitial Lung Disease Using Radiologists' Notes and Medical Claims Data
 
 For our capstone project, my MScA partners and I decided to focus on the topic of Interstitial Lung Disease (ILD). 
 Our project was comprised of three main components:
@@ -8,9 +8,10 @@ Our project was comprised of three main components:
 
 I focused on the third component, the survival modeling to predict when a patient would receive an ILD diagnosis. The following represents that work.
 
-## Modeling
+### Modeling
 For random survival forest modeling, I used a few packages in R.
 
-""<img src="income.png" alt="income" width="400"/> <img src="lifelost.png" alt="lifelost" width="400"/>
+<img src="packages.jpg" alt="R_packages" width="400"/> 
+<img src="packages2.jpg" alt="R_packages2" width="400"/>
 
 

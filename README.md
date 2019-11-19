@@ -52,3 +52,12 @@ o<- tune(Surv(t, censored)~ gender + race + ethnicity + age_at_last_visit + leng
   stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
   trace = FALSE, doBest = TRUE)
 ```
+
+##### Final Model
+After feature selection and hyperparamter tuning, I found the best performing Random Survival Forest Model, which I evaluated using the error rate and C-index.
+
+Below is a graph of a few predicted survival curves compared to the patients' actual outcomes.
+![alt text](https://github.com/joanagnes/capstone-random-forest-survival-model/blob/master/survival%20curves.JPG "Survival Curves")
+
+Here is the feature importance list:
+![alt text](https://github.com/joanagnes/capstone-random-forest-survival-model/blob/master/feature%20importance.JPG "Feature Importance")

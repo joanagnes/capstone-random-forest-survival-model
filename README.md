@@ -1,4 +1,5 @@
 ## Detection of Interstitial Lung Disease Using Radiologists' Notes and Medical Claims Data
+----------------------------------------------------------------------------------------------
 
 For our capstone project, my MScA partners and I decided to focus on the topic of Interstitial Lung Disease (ILD). 
 Our project was comprised of three main components:
@@ -10,8 +11,8 @@ I focused on the third component, the survival modeling to predict when a patien
 
 ### Data Prep
 I had to execute a fair amount of data cleanup and feature engineering of the raw data to actually use it in a ML model.
-The bulk of the work revolved around reducing the multiple rows of data per patient to one row per patient. This included aggregating and ranking patient's health information as well as addressing missing data issues.
-* Please refer to the SQL and jupyter notebook files to see what steps I took.
+The bulk of the work revolved around reducing the multiple rows of data per patient to one row per patient. This included aggregating and ranking patient's health information as well as addressing missing data issues. Also, in order to pass the data through the Random Survival Forest algorithm, I had to one-hot encode many of the categorical data fields.
+- SQL files and jupyter notebook show the exact steps that I took
 
 ### Modeling
 For random survival forest modeling, I used a few packages in R.
@@ -28,4 +29,12 @@ And then I called these:
 `ggRandomForests`
 `randomForestSRC`.
 
+'''
+require(randomForestSRC)
+o<- tune(Surv(t, censored)~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other + other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+'''
 

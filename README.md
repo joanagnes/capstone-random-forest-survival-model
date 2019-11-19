@@ -39,7 +39,7 @@ rf3 <- ranger(Surv(t, censored) ~ gender + race + ethnicity + age_at_last_visit 
 ```
 Here is a list of the features I ended up using in my model:
 
-<img src="featurelist.png" alt="Features" width="400"/>
+![alt text](https://github.com/joanagnes/capstone-random-forest-survival-model/blob/master/featurelist.PNG "feature list")
 
 ##### Hyperparameter Tuning
 Once I found the optimal subset of features, I used the ```tune``` feature in the ```randomforestSRC``` package that returns the optimal values for ```mtry``` and ```nodesize```.

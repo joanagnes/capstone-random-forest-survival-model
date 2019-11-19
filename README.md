@@ -8,7 +8,9 @@ Our project was comprised of three main components:
 
 I focused on the third component, the survival modeling to predict when a patient would receive an ILD diagnosis. The following represents that work.
 
+## Modeling
+For random survival forest modeling, I used a few packages in R.
 
-## Getting Started
+""<img src="income.png" alt="income" width="400"/> <img src="lifelost.png" alt="lifelost" width="400"/>
 
-For random forest survival modeling, I used a number of packages.
+

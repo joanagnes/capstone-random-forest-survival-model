@@ -1,0 +1,1044 @@
+---
+
+title: "survival analysis"
+output: html_document
+---
+
+```{r}
+#install.packages("randomForestSRC")
+#install.packages("pec")
+#install.packages("survival")
+#install.packages("rms")
+#install.packages("party")
+#install.packages("gtools")
+#install.packages("dplyr")
+#install.packages("survminer")
+#install.packages("caret")
+#install.packages("glmnet")
+#install.packages("doParallel")
+#install.packages("risksetROC")
+#install.packages("ggRandomForests")
+#install.packages("mlr")
+#install.packages("climbeR")
+```
+
+```{r}
+library(pec)
+library(survival)
+library(party)
+library(gtools)
+library(ggplot2)
+library(survminer)
+library(dplyr)
+library(ranger)
+```
+
+
+```{r}
+#dataPath<- "Z:/ildproject-share/final_data"
+dataPath <- "C:/Users/Joan/OneDrive/capstone/survival analysis"
+train_1 <- read.csv(file=paste(dataPath,'final_train_w_onehot.csv',sep="/"), header=TRUE,sep=",")
+test_1 <- read.csv(file=paste(dataPath,'final_test_w_onehot.csv',sep="/"), header=TRUE,sep=",")
+```
+
+```{r}
+#describe(train)
+```
+
+```{r}
+#describe(test)
+```
+
+```{r}
+train_1$ild_status <- as.double(train_1$ild_status)
+train_1$censored <- as.logical(as.integer(as.character(train_1$censored)))
+train_1$t <- as.integer(train_1$t)
+train_1$total_xr <- as.numeric(train_1$total_xr)
+train_1$total_ct <- as.numeric(train_1$total_ct)
+train_1$total_other <- as.numeric(train_1$total_other)
+
+test_1$ild_status <- as.double(test_1$ild_status)
+test_1$censored <- as.logical(as.integer(as.character(test_1$censored)))
+test_1$t <- as.integer(test_1$t)
+test_1$total_xr <- as.numeric(test_1$total_xr)
+test_1$total_ct <- as.numeric(test_1$total_ct)
+test_1$total_other <- as.numeric(test_1$total_other)
+
+
+train2 <- subset(train_1, t>=0 )
+test2 <- subset(test_1, t>=0)
+
+```
+
+```{r}
+#library(caret)
+#library(glmnet)
+#library(doParallel)
+#library(risksetROC)
+library(ggRandomForests)
+library(randomForestSRC)
+```
+```{r}
+```
+
+
+```{r}
+#use this after the full model is determined
+#train5<- select(train2, -X, - patient_id, - ild_status)
+#test5<- select(test2, -X, - patient_id, - ild_status)
+```
+
+```{r}
+train3 <- train2
+train3[30:530] <- lapply(train3[30:530], factor)
+train3[19:28] <- lapply(train3[19:28], factor)
+train4 <- train3[!is.na(train3$age_at_last_visit),]
+train4a <- train4[!is.na(train4$total_nbr_procs),]
+# train4b <- train4a[!is.na(train4a$total_nbr_visits),]
+train5<- select(train4a, -X, -dataset)
+train5$other_low_resp <- ifelse((train5$ccs_desc_Oth.low.resp==1|train5$ccs_desc_Other.lower.respiratory.disease==1),1,0)
+train6<-train5[,c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,529)]
+train7 <- train6[sample(nrow(train6),5000),]
+```
+
+
+```{r}
+test3 <- test2
+test3[30:530] <- lapply(test3[30:530], factor)
+test3[19:28] <- lapply(test3[19:28], factor)
+test4 <- test3[!is.na(test3$age_at_last_visit),]
+test4a <- test4[!is.na(test4$total_nbr_procs),]
+#test4b <- test4a[!is.na(test4a$total_nbr_visits),]
+
+test5 <- select(test4a, -X, -dataset)
+test5$other_low_resp <- ifelse((test5$ccs_desc_Oth.low.resp==1|test5$ccs_desc_Other.lower.respiratory.disease==1),1,0)
+test6 <- test5[,c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27)]
+test7 <- test6[sample(nrow(test6),5000),]
+```
+
+```{r}
+rm(train_1)
+rm(train2)
+rm(train3)
+rm(train4)
+rm(train4a)
+
+rm(test_1)
+rm(test2)
+rm(test3)
+rm(test4)
+rm(test4a)
+```
+
+
+```{r}
+#save(train5,file=paste(dataPath,"train5.Rds",sep="/"))
+#save(test5,file=paste(dataPath,"test5.Rds",sep="/"))
+```
+
+```{r}
+#load(file=paste(dataPath,"train5.Rds",sep="/"))
+#load(file=paste(dataPath,"test5.Rds",sep="/"))
+```
+
+###Running different models
+
+```{r}
+## S3 method for class 'rfsrc'
+tune(Surv(t, censored)~ ., data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+
+```
+
+
+```{r}
+rf3 <- ranger(Surv(t, censored) ~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + avg_length_of_all_visits + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other + cigarettes_yn_2 + pipes_yn_2 + cigars_yn_2 + smoking_tob_use_2, data = train7, num.trees=500, importance="impurity", mtry = 12) 
+```
+```{r}
+#Save the model object!!!
+#save(rf3, file=paste(dataPath, "rf3.rds", sep="/"))
+```
+```{r}
+print(rf3)
+```
+
+```{r}
+importance(rf3)
+vi <- data.frame(sort(round(rf3$variable.importance, 4), decreasing = TRUE))
+names(vi) <- "importance"
+head(vi)
+```
+
+
+```{r}
+rf4 <- ranger(Surv(t, censored) ~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + avg_length_of_all_visits + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other, data = train7, num.trees=500, importance="impurity", mtry = 12) 
+```
+```{r}
+#Save the model object!!!
+#save(rf3, file=paste(dataPath, "rf3.rds", sep="/"))
+```
+```{r}
+print(rf4)
+```
+
+
+```{r}
+importance(rf4)
+vi <- data.frame(sort(round(rf4$variable.importance, 4), decreasing = TRUE))
+names(vi) <- "importance"
+head(vi)
+```
+
+```{r}
+rf5 <- ranger(Surv(t, censored) ~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other + other_low_resp, data = train7, num.trees=500, importance="impurity", mtry = 12) 
+```
+```{r}
+#Save the model object!!!
+#save(rf3, file=paste(dataPath, "rf3.rds", sep="/"))
+```
+```{r}
+print(rf5)
+```
+
+```{r}
+require(randomForestSRC)
+o<- tune(Surv(t, censored)~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other + other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+
+```
+```{r}
+o
+```
+
+```{r}
+o2<- tune(Surv(t, censored)~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other +smoking_tob_use_2 +other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+
+```
+```{r}
+o2$rf
+```
+```{r}
+o3<- tune(Surv(t, censored)~ age_at_last_visit, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+o3$rf
+```
+
+```{r}
+o4<- tune(Surv(t, censored)~ gender + race , data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+o4$rf
+```
+
+```{r}
+o5<- tune(Surv(t, censored)~ ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other +smoking_tob_use_2 +other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+o5$rf
+```
+
+
+```{r}
+o6<- tune(Surv(t, censored)~  age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other +smoking_tob_use_2 +other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+o6$rf
+```
+
+
+```{r}
+o7<- tune(Surv(t, censored)~  age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other +other_low_resp, data=train7,
+  mtryStart = ncol(train7) / 2,  
+  nodesizeTry = c(1:9, seq(10, 100, by = 5)), ntreeTry = 50,
+  stepFactor = 1.25, improve = 1e-3, strikeout = 3, maxIter = 25,
+  trace = FALSE, doBest = TRUE)
+o7$rf
+```
+
+
+```{r}
+mod1 <- ranger(Surv(t,censored)~age_at_last_visit + length_of_first_visit + length_of_last_visit + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other +smoking_tob_use_2, data=train7,num.tree=500, mtry=4, min.node.size=4)
+```
+
+
+```{r}
+```
+
+```{r}
+```
+
+
+```{r}
+
+#use the model object to predict on test
+pred3 <- predict(rf3, data = test6, predict.all=FALSE, type="response", se.method="infjack")
+```
+```{r}
+#use ranger.prediction object to calcualte c=index
+pp3 <- predictions(pred3)
+
+sum.chf3 <- apply(pred3$chf, 1, sum)
+head(sum.chf3)
+
+#library(Hmisc)
+c1 <- rcorr.cens(sum.chf3, Surv(test6$t, test6$censored))
+c1
+
+library(risksetROC)
+  w.ROC = risksetROC(Stime = test6$t,  
+                   status = test6$censored, 
+                   marker = pp3[,88], 
+                   predict.time = 100, 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=100"), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+```
+
+### Cox proportional using the vimp from the ranger forest
+```{r}
+cox <- coxph(Surv(t, censored)~age_at_last_visit + avg_length_of_all_visits +total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct, data=train6 )
+```
+
+```{r}
+cx.pred <- predict(cox,test6)
+
+```
+```{r}
+cindex_validation = concordance.index (cx.pred, surv.time = test6$t,
+                                       surv.event=test6$censored, method = "noether")
+cx.c1 <- rcorr.cens(cx.pred, Surv(test6$t, test6$censored))
+cx.c1
+
+library(risksetROC)
+  w.ROC = risksetROC(Stime = test6$t,  
+                   status = test6$censored, 
+                   marker = pp3[,88], 
+                   predict.time = 100, 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=100"), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+
+```
+
+### Second random forest-- this includes lower respiratory diag flag
+```{r}
+rf4 <- ranger(Surv(t, censored) ~ gender + race + ethnicity + age_at_last_visit + length_of_first_visit + length_of_last_visit + avg_length_of_all_visits + total_nbr_visits + total_nbr_procs + avg_nbr_procs_per_encounter + total_xr +total_ct + total_other + tobacco_pak_per_dy_2 + tobacco_used_years_2 + cigarettes_yn_2 + pipes_yn_2 + cigars_yn_2 + snuff_yn_2 + alcohol_oz_per_wk_2 + iv_drug_user_yn_2 + tobacco_user_2 + smoking_tob_use_2+other_low_resp, data = train8, num.trees=500, importance="impurity") 
+```
+
+```{r}
+#Save the model object!!!
+save(rf4, file=paste(dataPath, "rf4.rds", sep="/"))
+```
+```{r}
+print(rf3)
+```
+```{r}
+importance(rf3)
+vi <- data.frame(sort(round(rf3$variable.importance, 4), decreasing = TRUE))
+names(vi) <- "importance"
+head(vi)
+```
+```{r}
+#use the model object to predict on test
+pred3 <- predict(rf3, data = test6, predict.all=FALSE, type="response", se.method="infjack")
+```
+```{r}
+#use ranger.prediction object to calcualte c=index
+pp3 <- predictions(pred3)
+
+sum.chf3 <- apply(pred3$chf, 1, sum)
+head(sum.chf3)
+
+#library(Hmisc)
+c1 <- rcorr.cens(sum.chf3, Surv(test6$t, test6$censored))
+c1
+
+library(risksetROC)
+  w.ROC = risksetROC(Stime = test6$t,  
+                   status = test6$censored, 
+                   marker = pp3[,88], 
+                   predict.time = 100, 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=100"), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+```
+```{r}
+
+importance(rf4)
+rf2$survival
+
+pp <- predict(rf2, data = test7)
+pp1 <- predict(rf2, data = test7, predict.all=FALSE, type="response", se.method="infjack")
+
+
+table(test7$t,predictions(pp))
+#predict on test
+pred.test.fin = predict(rf2, 
+                         newdata = test7, 
+                         importance = "none" )
+  c      
+c.test <- rcorr.cens(pp1$predictions, 
+           Surv(test7$t, test7$censored))["C Index"]
+
+length(predictions(pp1))
+length(pp$chf)
+
+surv_prob <- data.frame(pp1$survival)
+length(surv_prob)
+
+library(Hmisc)
+c1 <- rcorr.cens(predictions(pp1), 
+           Surv(test7$t, test7$censored))["C Index"]
+c1
+
+zz <- data.frame(predictions(pp1))
+length(zz)
+z3 <- pp1$survival
+z4 <-pp1$prediction
+length(z3)
+```
+
+```{r}
+
+
+w.ROC = risksetROC(Stime = test5$t,  
+                   status = test5$censored, 
+                   marker = pred.test.fin$predicted, 
+                   predict.time = 190, 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=190"), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+```
+
+```{r}
+#Clean up for unnecessary columns-- when using dx info
+nas_df <- data.frame(sapply(train5, function(y) sum(length(which(is.na(y))))))
+
+```
+```{r}
+
+train5a <- train5[train5$ild_status==1,]
+train_df <- data.frame(sapply(train5a[28:528], function(y) sum(length(which((y==1))))))
+colnames(train_df) <- c("col1")
+newdata <- subset(train_df, col1>50,
+select=col1)
+
+train5$other_low_resp <- ifelse((train5$ccs_desc_Oth.low.resp==1|train5$ccs_desc_Other.lower.respiratory.disease==1),1,0)
+
+train_test <- train5[train5$other_low_resp==1,]
+
+```
+```{r}
+test5a <- test5[test5$ild_status==1,]
+test_df <- data.frame(sapply(test5a[28:528], function(y) sum(length(which((y==1))))))
+colnames(test_df) <- c("col1")
+newdata_a <- subset(test_df, col1>0,
+select=col1)
+```
+
+```{r}
+
+
+colnames_df <- data.frame(colnames(train5))
+
+a <- test_df[test_df$col1<100,]
+
+
+test$fac <- factor(test$fac, levels = levels(train$fac))
+
+rf <- ranger(Surv(t, censored) ~ ., data = train7, num/trees=500, mtry=57) 
+
+colnames(train7)
+```
+
+
+#second model
+```{r}
+out.rsf.2 <- rfsrc(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5, ntree=200, nsplit=2)
+```
+
+```{r}
+
+print(out.rsf.2)
+```
+
+```{r}
+imp.rsf.2 <- sort(vimp(out.rsf.2)$importance, 
+                  decreasing = T)
+imp.rsf.2
+```
+```{r}
+plot(gg_vimp(out.rsf.2))
+plot(gg_error(out.rsf.2$err.rate))
+```
+
+```{r}
+length(out.rsf.2$predicted.oob)
+```
+
+```{r}
+head(out.rsf.2$predicted.oob)
+
+```
+
+```{r}
+sum.chf.oob <- apply(out.rsf.2$chf.oob,1,sum)
+head(sum.chf.oob)
+```
+
+```{r}
+c2<- rcorr.cens(out.rsf.2$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+c2
+```
+
+```{r}
+out.rsf.3 <- rfsrc(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5, ntree=1000, nsplit=2)
+```
+
+```{r}
+print(out.rsf.3)
+```
+```{r}
+imp.rsf.3 <- sort(vimp(out.rsf.3)$importance, 
+                  decreasing = T)
+imp.rsf.3
+```
+```{r}
+plot(gg_vimp(out.rsf.3))
+
+```
+
+
+```{r}
+length(out.rsf.3$predicted.oob)
+
+```
+
+```{r}
+head(out.rsf.3$predicted.oob)
+
+```
+
+```{r}
+sum.chf.oob <- apply(out.rsf.3$chf.oob,1,sum)
+head(sum.chf.oob)
+```
+
+```{r}
+c3 <- rcorr.cens(out.rsf.3$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+c3
+```
+```{r}
+# plot(gg_error(out.rsf.3))
+```
+
+
+```{r}
+out.rsf.4 <- rfsrc(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5, ntree=2500, nsplit=2, nodesize=5)
+```
+
+```{r}
+c4 <- rcorr.cens(out.rsf.4$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+c4
+```
+```{r}
+out.rsf.5 <- rfsrc(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5, ntree=2000, nsplit=2, nodesize=10)
+```
+
+```{r}
+print(out.rsf.5)
+```
+```{r}
+c5 <- rcorr.cens(out.rsf.5$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+c5
+```
+
+
+```{r}
+out.rsf.6 <- rfsrc(Surv(t, censored)~ ., data=train5, ntree=500, nsplit=10, nodesize=9, mtry=30)
+```
+```{r}
+print(out.rsf.6)
+```
+
+```{r}
+imp.rsf.6 <- sort(vimp(out.rsf.6)$importance, 
+                  decreasing = T)
+imp.rsf.6
+```
+
+```{r}
+plot(gg_vimp(out.rsf.6))
+```
+
+```{r}
+c6 <- rcorr.cens(out.rsf.6$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+c6
+
+```
+
+
+
+###Look at the c-indexes
+
+```{r}
+rbind(c1,c2,c3,c4,c5 )
+```
+From the above, plug the best model into the predict function below
+
+
+
+```{r}
+pred.test.fin = predict(out.rsf.6, 
+                         newdata = test5, 
+                         importance = "none" )
+
+rcorr.cens(-pred.test.fin$predicted , 
+             Surv(test5$t, test5$censored))["C Index"]
+```
+
+```{r}
+library(risksetROC)
+
+```
+
+```{r}
+w.ROC = risksetROC(Stime = train5$t,  
+                   status = train5$censored, 
+                   marker = out.rsf.1$predicted.oob, 
+                   predict.time = median(train5$t), 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=", 
+                                median(train5$t)), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+
+
+```
+
+```{r}
+
+w.ROC = risksetAUC(Stime = train5$t,  
+                   status = train5$censored, 
+                   marker = out.rsf.3$predicted.oob,
+                   tmax = 350)
+```
+```{r}
+w.ROC = risksetAUC(Stime = test5$t,  
+                   status = test5$censored, 
+                   marker = pred.test.fin$predicted, 
+                   tmax = 220, 
+                   method = "Cox")
+
+```
+```{r}
+
+
+w.ROC = risksetROC(Stime = test5$t,  
+                   status = test5$censored, 
+                   marker = pred.test.fin$predicted, 
+                   predict.time = 190, 
+                   method = "Cox", 
+                   main = paste("OOB Survival ROC Curve at t=190"), 
+                   lwd = 3, 
+                   col = "red" )
+
+w.ROC$AUC
+```
+
+```{r}
+test5$t[test5$t>2]
+
+```
+
+
+```{r}
+
+#plot(gg_survival(interval = "days", censor = "ild_status", by = "bili_grp",data = train4), error = "none")
+#labs(y = "Survival Probability", x = "Observation Time (years)",color = "Bilirubin")
+
+plot(gg_rfsrc(out.rsf.6, by = train5$censored)) + theme(legend.position = c(0.2, 0.2)) +
+ labs(y = "Survival Probability", x = "Time (days)") +
+  coord_cartesian(ylim = c(-0.5, 1.01))
+```
+```{r}
+cols <- c("red", "blue")
+
+ggRFsrc <- plot(gg_rfsrc(out.rsf.6), alpha = 0.2) +
+  scale_color_manual(values = cols) +
+  theme(legend.position = c(0.2,0.2 )) +
+  labs(y = "Survival Probability", x = "Time (days)") +
+  coord_cartesian(ylim = c(-0.01, 1.01))
+show(ggRFsrc)
+
+#ggsurvplot(out.rsf.3, data =train5, pval = TRUE)
+```
+
+
+```{r}
+plot(gg_rfsrc(pred.test.fin), alpha=.2) + scale_color_manual(values=cols)+
+  theme(legend.position=c(0.2,0.2 ))+ labs(y="Survival Probability", x="Time (days)"+
+                                        coord_cartesian(ylim=c(-0.01, 1.01)))
+```
+
+```{r}
+gg_v <- gg_variable(out.rsf.3, time = c(50, 100),
+                   time.labels = c("50 days", "100 days"))
+
+plot(gg_v, xvar = "ILD_status", alpha = 0.4) + #, se=FALSE
++ labs(y = "Survival", x = train5$censored["TRUE"]) +
+ggRandomForests + theme(legend.position = "none") +
+R+ scale_color_manual(values = cols, labels = event.labels) +
+R+ scale_shape_manual(values = event.marks, labels = event.labels) +
+R+ coord_cartesian(ylim = c(-0.01, 1.01))
+
+```
+
+```{r}
+head(app)
+plot(app[1,21:49])
+```
+
+```{r}
+# ranger model
+#r_fit <- ranger(Surv(time, status) ~ trt + celltype + 
+                   #  karno + diagtime + age + prior,
+                    # data = vet,
+                    # mtry = 4,
+                    # importance = "permutation",
+                    # splitrule = "extratrees",
+                    # verbose = TRUE)
+
+
+# Average the survival models
+death_times <-pred.test.fin$time.interest 
+surv_prob <- data.frame(pred.test.fin$survival)
+avg_prob <- sapply(surv_prob,mean)
+
+# Plot the survival models for each patient
+plot(pred.test.fin$time.interest, pred.test.fin$survival[137,], 
+     type = "l", 
+     ylim = c(0,1),
+     col = "red",
+     xlab = "Days",
+     ylab = "survival",
+     main = "Patient Survival Curves")
+
+#
+#cols <- colors()
+#for (n in sample(c(2:dim(test5)[1]),10)){
+ # lines(out.rsf.3.test$time.interest, out.rsf.3.test$survival[n,], type = "l", col = cols[n])
+#}
+#lines(death_times, avg_prob, lwd = 2)
+#legend(500, 0.7, legend = c('Average = black'))
+```
+
+
+```{r}
+out.rsf.4 <- rfsrc(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5, ntree=5, nsplit=2)
+```
+
+```{r}
+print(out.rsf.4)
+```
+
+```{r}
+pred.test.fin = predict(out.rsf.4, 
+                         newdata = test5, 
+                         importance = "none" )
+
+rcorr.cens(-pred.test.fin$predicted , 
+             Surv(test5$t, test5$censored))["C Index"]
+```
+
+
+```{r}
+#install.packages("Hmisc")
+require(Hmisc)
+```
+
+```{r}
+rcorr.cens(out.rsf.4$predicted.oob, 
+           Surv(train5$t, train5$censored))["C Index"]
+#200, 5, 0.32
+#15, 5, 0.4
+#25,2, 0.36
+#10,2, 0.436
+```
+
+
+```{r}
+imp.rsf.2 <- sort(vimp(out.rsf.2)$importance, 
+                  decreasing = T)
+imp.rsf.2
+```
+```{r}
+plot(gg_vimp(out.rsf.2))
+
+plot(gg_error(out.rsf.2$err.rate))
+```
+```{r}
+out.rsf.2$err.rate
+```
+
+```{r}
+length(out.rsf.2$predicted.oob)
+```
+
+```{r}
+head(out.rsf.2$predicted.oob)
+
+```
+
+```{r}
+sum.chf.oob <- apply(out.rsf.2$chf.oob,1,sum)
+head(sum.chf.oob)
+```
+
+
+
+
+
+```{r}
+
+out.rsf.3.test$time.interest
+
+out.rsf.3.test$survival
+```
+### Cox regression
+```{r}
+res.cox <- coxph(Surv(t, censored)~ gender + race+ ethnicity+ first_zip_d + age_at_last_visit +length_of_last_visit + avg_length_of_all_visits+total_nbr_visits +total_nbr_procs + avg_nbr_procs_per_encounter+total_xr+total_ct+total_other, data=train5)
+
+summary(res.cox)
+```
+
+```{r}
+pred.test.fin.a = predict(res.cox, 
+                         newdata = test5, 
+                         importance = "none" )
+
+rcorr.cens(pred.test.fin.a$predicted , 
+             Surv(test5$t, test5$censored))["C Index"]
+
+```
+```{r}
+pred.test.fin.a$predic
+```
+
+
+```{r}
+ggsurvplot(fit, conf.int = TRUE, palette = "Dark2", 
+           censor = FALSE, surv.median.line = "hv")
+```
+ggsurvplot(fit, conf.int = TRUE, legend.labs=c("Sex=1", "Sex=2"),
+           ggtheme = theme_minimal())
+```
+```{r}
+# Plot the baseline survival function
+#ggsurvplot(survfit(res.cox), color = "#2E9FDF",
+           ggtheme = theme_minimal())
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+
+```{r}
+library(survminer)
+require(survival)
+ggsurvplot(out.rsf.3,data=test5)
+```
+
+
+```{r}
+plot(out.rsf.3$survival.oob, mark.time=F)
+```
+
+
+```{r}
+```
+
+
+
+```{r}
+surv_object <- Surv(time=train4[0:5000,]$t, event=train4[0:5000,]$censored)
+```
+
+```{r}
+cox_model <- survfit(surv_object
+~ gender + race+ ethnicity + first_zip_d +age_at_last_visit + total_nbr_visits +total_nbr_procs +total_ct + total_other, data=train4[0:5000,])
+```
+
+```{r}
+summary(cox_model)
+```
+```{r}
+cox_fit<- survfit(cox_model)
+
+```
+
+```{r}
+plot(cox_fit, main = "cph model", xlab="Days")
+
+```
+
+```{r}
+ggsurvplot(cox_fit, data =train4, pval = TRUE)
+
+
+```
+
+```{r}
+summary(train4$gender)
+```
+```{r}
+glimpse(train4)
+
+```
+
+```{r}
+a<-selectCox(fitform, data=train4, rule="aic")
+a
+print(a$fit)
+
+```
+
+```{r}
+fitrsf <- rfsrc(fitform,data=train4)
+```
+
+```{r}
+fitrsf
+```
+```{r}
+prsf <- predictSurvProb(fitrsf, newdata=test, times=t)
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+

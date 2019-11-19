@@ -8,10 +8,24 @@ Our project was comprised of three main components:
 
 I focused on the third component, the survival modeling to predict when a patient would receive an ILD diagnosis. The following represents that work.
 
+### Data Prep
+I had to execute a fair amount of data cleanup and feature engineering of the raw data to actually use it in a ML model.
+The bulk of the work revolved around reducing the multiple rows of data per patient to one row per patient. This included aggregating and ranking patient's health information as well as addressing missing data issues.
+* Please refer to the SQL and jupyter notebook files to see what steps I took.
+
 ### Modeling
 For random survival forest modeling, I used a few packages in R.
-
-<img src="packages.jpg" alt="packages" width="400"/> 
-<img src="packages2.jpg" alt="packages2" width="400"/>
+First I called the following:
+`pes`
+`survival`
+`party`
+`gtools`
+`ggplot2`
+`survminer`
+`dplyr`
+`ranger`
+And then I called these:
+`ggRandomForests`
+`randomForestSRC`.
 
 

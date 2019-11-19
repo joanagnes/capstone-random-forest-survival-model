@@ -11,7 +11,7 @@ I focused on the third component, the survival modeling to predict when a patien
 ### Modeling
 For random survival forest modeling, I used a few packages in R.
 
-<img src="packages.jpg" alt="R_packages" width="400"/> 
-<img src="packages2.jpg" alt="R_packages2" width="400"/>
+<img src="packages.jpg" alt="packages" width="400"/> 
+<img src="packages2.jpg" alt="packages2" width="400"/>
 
 
